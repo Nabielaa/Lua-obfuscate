@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Lua Obfuscator - Devil Mode</title>
+    <title>Lua Obfuscator - Devil Mode+</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { background:#0b0b0b; color:#eaeaea; font-family:Arial; text-align:center; }
+        body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
         textarea { width:95%; height:150px; margin:8px 0; background:#151515; color:#7CFFCB; border:none; padding:10px; border-radius:8px; }
         input { padding:10px; border:none; border-radius:8px; margin:5px; }
-        button { padding:10px 15px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
+        button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
     </style>
 </head>
 <body>
 
-<h2>💀 Lua Obfuscator (Devil Mode Lite)</h2>
+<h2>💀 Lua Obfuscator (Devil Mode+)</h2>
 
 <input id="password" placeholder="Password 🔑">
 <textarea id="input" placeholder="Lua script..."></textarea>
@@ -24,7 +24,6 @@
 <textarea id="output"></textarea>
 
 <script>
-// utils
 function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
 function b64d(s){return decodeURIComponent(escape(atob(s)));}
 
@@ -43,35 +42,67 @@ function rand(len){
     return r;
 }
 
-// fake noise
 function noise(){
     let n="";
-    for(let i=0;i<8;i++){
+    for(let i=0;i<6;i++){
         n+=`local ${rand(5)}=${Math.random()*9999}\n`;
     }
     return n;
 }
 
-// OBF
+// 🔒 encode password → angka + xor + reverse
+function encodePass(pass){
+    let key = 23;
+    let arr = [];
+    for(let i=0;i<pass.length;i++){
+        arr.push(pass.charCodeAt(i) ^ key);
+    }
+    return arr.reverse();
+}
+
+// 🔓 decode password (buat fitur decode di web)
+function decodePass(arr){
+    let key = 23;
+    let s="";
+    arr = arr.slice().reverse();
+    for(let i=0;i<arr.length;i++){
+        s+=String.fromCharCode(arr[i]^key);
+    }
+    return s;
+}
+
+// OBFUSCATE
 function obf(){
     let code=input.value;
     let pass=password.value;
 
     if(!code||!pass) return alert("isi semua");
 
+    let encodedPass = encodePass(pass);
+
     let s1 = xor(code, pass);
     let s2 = b64e(s1);
     let s3 = xor(s2, pass.split("").reverse().join(""));
     let s4 = b64e(s3);
 
-    let var1=rand(6), var2=rand(6), var3=rand(6);
+    let v1=rand(6), v2=rand(6), v3=rand(6);
 
     let lua = `
 ${noise()}
-local ${var1}="${pass}"
-local ${var2}="${s4}"
+local _p=${JSON.stringify(encodedPass)}
 
-local function ${var3}(a,b)
+local function _dp(t)
+    local s=""
+    for i=#t,1,-1 do
+        s=s..string.char(bit32.bxor(t[i],23))
+    end
+    return s
+end
+
+local ${v1}=_dp(_p)
+local ${v2}="${s4}"
+
+local function ${v3}(a,b)
     local r=""
     for i=1,#a do
         r=r..string.char(bit32.bxor(string.byte(a,i), string.byte(b,((i-1)%#b)+1)))
@@ -79,18 +110,11 @@ local function ${var3}(a,b)
     return r
 end
 
--- anti simple tamper
-if not bit32 then error("Environment not supported") end
+if not bit32 then error("Nope") end
 
-local s = ${var3}((${var3}((${var3}(${var2},${var1})),string.reverse(${var1}))),${var1})
+local s = ${v3}((${v3}((${v3}(${v2},${v1})),string.reverse(${v1}))),${v1})
 
-loadstring((function()
-    return (function(x)
-        return (x:gsub('.', function(c)
-            return string.char(string.byte(c))
-        end))
-    end)(s)
-end)())()
+loadstring(s)()
 `;
 
     output.value = lua;
@@ -102,7 +126,7 @@ function dec(){
     let pass=password.value;
 
     try{
-        let data = code.match(/local .*="(.*?)"/g)[1].match(/"(.*?)"/)[1];
+        let data = code.match(/local .*="(.*?)"/)[1];
 
         let s3 = b64d(data);
         let s2 = xor(s3, pass.split("").reverse().join(""));
