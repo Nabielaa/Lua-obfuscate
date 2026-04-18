@@ -1,65 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Simple Lua Obfuscator</title>
+    <title>Advanced Lua Obfuscator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            background: #0f0f0f;
-            color: white;
-            font-family: Arial;
-            text-align: center;
-            padding: 10px;
-        }
+        body { background:#0f0f0f; color:white; font-family:Arial; text-align:center; }
         textarea {
-            width: 95%;
-            height: 180px;
-            margin: 10px 0;
-            background: #1a1a1a;
-            color: #00ffcc;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
+            width:95%; height:160px; margin:10px 0;
+            background:#1a1a1a; color:#00ffcc;
+            border:none; padding:10px; border-radius:8px;
         }
         button {
-            padding: 12px 20px;
-            background: #00ffcc;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
+            padding:12px 20px; background:#00ffcc;
+            border:none; border-radius:8px; cursor:pointer;
+            font-weight:bold;
         }
     </style>
 </head>
 <body>
 
-    <h2>🔒 Lua Obfuscator (Simple)</h2>
+<h2>🔒 Advanced Lua Obfuscator</h2>
 
-    <textarea id="input" placeholder="Masukkan script Lua..."></textarea>
+<textarea id="input" placeholder="Masukkan script Lua..."></textarea>
+<button onclick="obfuscate()">Obfuscate</button>
+<textarea id="output" placeholder="Hasil..."></textarea>
 
-    <button onclick="obfuscate()">Obfuscate</button>
+<script>
+function randomKey(length) {
+    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let key = "";
+    for (let i = 0; i < length; i++) {
+        key += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return key;
+}
 
-    <textarea id="output" placeholder="Hasil obfuscate muncul di sini..."></textarea>
+function xorEncode(str, key) {
+    let result = [];
+    for (let i = 0; i < str.length; i++) {
+        result.push(str.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return result.join(",");
+}
 
-    <script>
-        function obfuscate() {
-            let code = document.getElementById("input").value;
+function obfuscate() {
+    let code = document.getElementById("input").value;
+    if (!code) return alert("Isi script dulu!");
 
-            if (!code) {
-                alert("Masukkan script dulu!");
-                return;
-            }
+    let key = randomKey(8);
+    let encoded = xorEncode(code, key);
 
-            let encoded = "";
-            for (let i = 0; i < code.length; i++) {
-                encoded += "\\" + code.charCodeAt(i);
-            }
+    let lua = `
+local k="${key}"
+local d={${encoded}}
 
-            let result = 'loadstring("' + encoded + '")()';
+local function x()
+    local r=""
+    for i=1,#d do
+        r=r..string.char(bit32.bxor(d[i], string.byte(k, ((i-1)%#k)+1)))
+    end
+    return r
+end
 
-            document.getElementById("output").value = result;
-        }
-    </script>
+loadstring(x())()
+`;
+
+    document.getElementById("output").value = lua;
+}
+</script>
 
 </body>
 </html>
