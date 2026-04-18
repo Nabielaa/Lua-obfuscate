@@ -1,58 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Lua Obfuscator FIX FINAL</title>
+<title>💀 Lua Obfuscator (Delta Safe)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
-textarea { width:95%; height:150px; margin:8px 0; background:#151515; color:#7CFFCB; border:none; padding:10px; border-radius:8px; }
-input { padding:10px; border:none; border-radius:8px; margin:5px; }
-button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
+body {
+    background:#0b0b0b;
+    color:white;
+    text-align:center;
+    font-family:Arial;
+}
+textarea {
+    width:95%;
+    height:150px;
+    margin:8px 0;
+    background:#151515;
+    color:#7CFFCB;
+    border:none;
+    padding:10px;
+    border-radius:8px;
+}
+input {
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    margin:5px;
+    width:200px;
+}
+button {
+    padding:10px;
+    margin:5px;
+    background:#7CFFCB;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
 </style>
 </head>
 <body>
 
-<h2>💀 Lua Obfuscator (FINAL FIX)</h2>
+<h2>💀 Lua Obfuscator (FINAL)</h2>
 
 <input id="password" placeholder="Password 🔑">
-<textarea id="input" placeholder="Lua script..."></textarea>
+<br>
+
+<textarea id="input" placeholder="Masukkan script Lua..."></textarea>
 
 <br>
 <button onclick="obf()">🔒 Obfuscate</button>
 <button onclick="dec()">🔓 Decode</button>
 
-<textarea id="output"></textarea>
+<textarea id="output" placeholder="Hasil muncul di sini..."></textarea>
 
 <script>
+// BASE64
 function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
 function b64d(s){return decodeURIComponent(escape(atob(s)));}
 
-// XOR MANUAL (NO ~, NO bit32)
-function xor(s,k){
+// ENCODE ANGKA (AMAN)
+function encodeNum(str){
+    let arr=[];
+    for(let i=0;i<str.length;i++){
+        arr.push(str.charCodeAt(i)+5);
+    }
+    return arr.join(",");
+}
+
+// DECODE ANGKA
+function decodeNum(str){
+    let s="";
+    let arr=str.split(",");
+    for(let i=0;i<arr.length;i++){
+        s+=String.fromCharCode(arr[i]-5);
+    }
+    return s;
+}
+
+// RANDOM STRING
+function rand(len){
+    let c="abcdefghijklmnopqrstuvwxyz";
     let r="";
-    for(let i=0;i<s.length;i++){
-        let a=s.charCodeAt(i);
-        let b=k.charCodeAt(i%k.length);
-        let c=0;
-
-        for(let j=0;j<8;j++){
-            let bitA = (a>>j)&1;
-            let bitB = (b>>j)&1;
-            if(bitA!=bitB) c += (1<<j);
-        }
-
-        r+=String.fromCharCode(c);
+    for(let i=0;i<len;i++){
+        r+=c[Math.floor(Math.random()*c.length)];
     }
     return r;
 }
 
-function rand(len){
-    let c="abcdefghijklmnopqrstuvwxyz";
-    let r="";
-    for(let i=0;i<len;i++) r+=c[Math.floor(Math.random()*c.length)];
-    return r;
-}
-
+// JUNK CODE
 function noise(){
     let n="";
     for(let i=0;i<5;i++){
@@ -61,90 +95,79 @@ function noise(){
     return n;
 }
 
-// encode password
-function encodePass(pass){
-    let arr=[];
-    for(let i=0;i<pass.length;i++){
-        arr.push(pass.charCodeAt(i)+3);
-    }
-    return arr.reverse();
-}
-
-// OBFUSCATE
+// 🔒 OBFUSCATE
 function obf(){
-    let code=input.value;
-    let pass=password.value;
+    let code=document.getElementById("input").value;
+    let pass=document.getElementById("password").value;
 
-    if(!code||!pass) return alert("isi semua");
+    if(!code||!pass){
+        alert("Isi script & password dulu!");
+        return;
+    }
 
-    let encPass = encodePass(pass);
+    // layer 1
+    let s1 = b64e(code);
 
-    let s1 = xor(code, pass);
-    let s2 = b64e(s1);
-    let s3 = xor(s2, pass.split("").reverse().join(""));
-    let s4 = b64e(s3);
+    // layer 2
+    let s2 = encodeNum(s1);
 
-    let v1=rand(6), v2=rand(6), v3=rand(6);
+    // password disembunyikan
+    let p = pass.split("").map(c=>c.charCodeAt(0)+2).reverse();
+
+    let v1=rand(6);
 
     let lua = `
 ${noise()}
-local _p=${JSON.stringify(encPass)}
+local _p={${p}}
 
 local function _dp(t)
     local s=""
     for i=#t,1,-1 do
-        s=s..string.char(t[i]-3)
+        s=s..string.char(t[i]-2)
     end
     return s
 end
 
-local ${v1}=_dp(_p)
-local ${v2}="${s4}"
+local ${v1}="${s2}"
 
-local function ${v3}(a,b)
+local function _dn(s)
     local r=""
-    for i=1,#a do
-        local ca=string.byte(a,i)
-        local cb=string.byte(b,((i-1)%#b)+1)
-        local c=0
-        for j=0,7 do
-            local bitA = math.floor(ca/2^j)%2
-            local bitB = math.floor(cb/2^j)%2
-            if bitA ~= bitB then
-                c = c + 2^j
-            end
-        end
-        r=r..string.char(c)
+    for v in string.gmatch(s,"[^,]+") do
+        r=r..string.char(tonumber(v)-5)
     end
     return r
 end
 
-local s = ${v3}((${v3}((${v3}(${v2},${v1})),string.reverse(${v1}))),${v1})
+local pass=_dp(_p)
+
+if not pass then return end
+
+local decoded=_dn(${v1})
+
+local final=(function(x)
+    return (x:gsub('.', function(c)
+        return string.char(string.byte(c))
+    end))
+end)(decoded)
 
 local f = loadstring or load
-f(s)()
+f(final)()
 `;
 
-    output.value = lua;
+    document.getElementById("output").value = lua;
 }
 
-// DECODE
+// 🔓 DECODE
 function dec(){
-    let code=input.value;
-    let pass=password.value;
+    let code=document.getElementById("input").value;
 
     try{
-        let matches = [...code.matchAll(/local\s+\w+="(.*?)"/g)];
-        let data = matches.sort((a,b)=>b[1].length - a[1].length)[0][1];
-
-        let s3 = b64d(data);
-        let s2 = xor(s3, pass.split("").reverse().join(""));
-        let s1 = b64d(s2);
-        let original = xor(s1, pass);
-
-        output.value = original;
+        let data = code.match(/local \w+="(.*?)"/)[1];
+        let step1 = decodeNum(data);
+        let original = b64d(step1);
+        document.getElementById("output").value = original;
     }catch{
-        alert("decode gagal / password salah");
+        alert("Decode gagal!");
     }
 }
 </script>
