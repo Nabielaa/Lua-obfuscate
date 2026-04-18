@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Lua Obfuscator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: #0f0f0f;
+            color: white;
+            font-family: Arial;
+            text-align: center;
+            padding: 10px;
+        }
+        textarea {
+            width: 95%;
+            height: 180px;
+            margin: 10px 0;
+            background: #1a1a1a;
+            color: #00ffcc;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        button {
+            padding: 12px 20px;
+            background: #00ffcc;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🔒 Lua Obfuscator (Simple)</h2>
+
+    <textarea id="input" placeholder="Masukkan script Lua..."></textarea>
+
+    <button onclick="obfuscate()">Obfuscate</button>
+
+    <textarea id="output" placeholder="Hasil obfuscate muncul di sini..."></textarea>
+
+    <script>
+        function obfuscate() {
+            let code = document.getElementById("input").value;
+
+            if (!code) {
+                alert("Masukkan script dulu!");
+                return;
+            }
+
+            let encoded = "";
+            for (let i = 0; i < code.length; i++) {
+                encoded += "\\" + code.charCodeAt(i);
+            }
+
+            let result = 'loadstring("' + encoded + '")()';
+
+            document.getElementById("output").value = result;
+        }
+    </script>
+
+</body>
+</html>
