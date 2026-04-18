@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Lua Obfuscator - Devil Mode FIX</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
-        textarea { width:95%; height:150px; margin:8px 0; background:#151515; color:#7CFFCB; border:none; padding:10px; border-radius:8px; }
-        input { padding:10px; border:none; border-radius:8px; margin:5px; }
-        button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
-    </style>
+<title>Lua Obfuscator FIX FINAL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
+textarea { width:95%; height:150px; margin:8px 0; background:#151515; color:#7CFFCB; border:none; padding:10px; border-radius:8px; }
+input { padding:10px; border:none; border-radius:8px; margin:5px; }
+button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
+</style>
 </head>
 <body>
 
-<h2>💀 Lua Obfuscator (Devil Mode FIX)</h2>
+<h2>💀 Lua Obfuscator (FINAL FIX)</h2>
 
 <input id="password" placeholder="Password 🔑">
 <textarea id="input" placeholder="Lua script..."></textarea>
@@ -27,10 +27,21 @@
 function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
 function b64d(s){return decodeURIComponent(escape(atob(s)));}
 
+// XOR MANUAL (NO ~, NO bit32)
 function xor(s,k){
     let r="";
     for(let i=0;i<s.length;i++){
-        r+=String.fromCharCode(s.charCodeAt(i)^k.charCodeAt(i%k.length));
+        let a=s.charCodeAt(i);
+        let b=k.charCodeAt(i%k.length);
+        let c=0;
+
+        for(let j=0;j<8;j++){
+            let bitA = (a>>j)&1;
+            let bitB = (b>>j)&1;
+            if(bitA!=bitB) c += (1<<j);
+        }
+
+        r+=String.fromCharCode(c);
     }
     return r;
 }
@@ -52,14 +63,14 @@ function noise(){
 
 // encode password
 function encodePass(pass){
-    let key=23, arr=[];
+    let arr=[];
     for(let i=0;i<pass.length;i++){
-        arr.push(pass.charCodeAt(i)^key);
+        arr.push(pass.charCodeAt(i)+3);
     }
     return arr.reverse();
 }
 
-// OBF
+// OBFUSCATE
 function obf(){
     let code=input.value;
     let pass=password.value;
@@ -82,7 +93,7 @@ local _p=${JSON.stringify(encPass)}
 local function _dp(t)
     local s=""
     for i=#t,1,-1 do
-        s=s..string.char(t[i] ~ 23)
+        s=s..string.char(t[i]-3)
     end
     return s
 end
@@ -95,20 +106,29 @@ local function ${v3}(a,b)
     for i=1,#a do
         local ca=string.byte(a,i)
         local cb=string.byte(b,((i-1)%#b)+1)
-        r=r..string.char((ca ~ cb) % 256)
+        local c=0
+        for j=0,7 do
+            local bitA = math.floor(ca/2^j)%2
+            local bitB = math.floor(cb/2^j)%2
+            if bitA ~= bitB then
+                c = c + 2^j
+            end
+        end
+        r=r..string.char(c)
     end
     return r
 end
 
 local s = ${v3}((${v3}((${v3}(${v2},${v1})),string.reverse(${v1}))),${v1})
 
-loadstring(s)()
+local f = loadstring or load
+f(s)()
 `;
 
     output.value = lua;
 }
 
-// DECODE (FIX)
+// DECODE
 function dec(){
     let code=input.value;
     let pass=password.value;
