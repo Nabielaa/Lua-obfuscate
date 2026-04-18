@@ -1,124 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>💀 Lua Obfuscator (Delta Safe)</title>
+<title>Lua Obfuscator (WORK DELTA)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body {
-    background:#0b0b0b;
-    color:white;
-    text-align:center;
-    font-family:Arial;
-}
-textarea {
-    width:95%;
-    height:150px;
-    margin:8px 0;
-    background:#151515;
-    color:#7CFFCB;
-    border:none;
-    padding:10px;
-    border-radius:8px;
-}
-input {
-    padding:10px;
-    border:none;
-    border-radius:8px;
-    margin:5px;
-    width:200px;
-}
-button {
-    padding:10px;
-    margin:5px;
-    background:#7CFFCB;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-}
+body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
+textarea { width:95%; height:150px; margin:8px 0; background:#151515; color:#7CFFCB; border:none; padding:10px; border-radius:8px; }
+input { padding:10px; border:none; border-radius:8px; margin:5px; }
+button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
 </style>
 </head>
 <body>
 
-<h2>💀 Lua Obfuscator (FINAL)</h2>
+<h2>💀 Lua Obfuscator (REAL WORK)</h2>
 
 <input id="password" placeholder="Password 🔑">
-<br>
-
-<textarea id="input" placeholder="Masukkan script Lua..."></textarea>
+<textarea id="input" placeholder="Lua script..."></textarea>
 
 <br>
 <button onclick="obf()">🔒 Obfuscate</button>
 <button onclick="dec()">🔓 Decode</button>
 
-<textarea id="output" placeholder="Hasil muncul di sini..."></textarea>
+<textarea id="output"></textarea>
 
 <script>
-// BASE64
 function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
 function b64d(s){return decodeURIComponent(escape(atob(s)));}
 
-// ENCODE ANGKA (AMAN)
+// encode angka
 function encodeNum(str){
     let arr=[];
     for(let i=0;i<str.length;i++){
-        arr.push(str.charCodeAt(i)+5);
+        arr.push(str.charCodeAt(i)+3);
     }
     return arr.join(",");
 }
 
-// DECODE ANGKA
+// decode angka
 function decodeNum(str){
     let s="";
     let arr=str.split(",");
     for(let i=0;i<arr.length;i++){
-        s+=String.fromCharCode(arr[i]-5);
+        s+=String.fromCharCode(arr[i]-3);
     }
     return s;
 }
 
-// RANDOM STRING
-function rand(len){
-    let c="abcdefghijklmnopqrstuvwxyz";
-    let r="";
-    for(let i=0;i<len;i++){
-        r+=c[Math.floor(Math.random()*c.length)];
-    }
-    return r;
-}
-
-// JUNK CODE
-function noise(){
-    let n="";
-    for(let i=0;i<5;i++){
-        n+=`local ${rand(5)}=${Math.random()*9999}\n`;
-    }
-    return n;
-}
-
-// 🔒 OBFUSCATE
+// obfuscate
 function obf(){
-    let code=document.getElementById("input").value;
-    let pass=document.getElementById("password").value;
+    let code=input.value;
+    let pass=password.value;
 
-    if(!code||!pass){
-        alert("Isi script & password dulu!");
-        return;
-    }
+    if(!code||!pass) return alert("isi semua");
 
-    // layer 1
-    let s1 = b64e(code);
+    let b64 = b64e(code);
+    let encoded = encodeNum(b64);
 
-    // layer 2
-    let s2 = encodeNum(s1);
-
-    // password disembunyikan
-    let p = pass.split("").map(c=>c.charCodeAt(0)+2).reverse();
-
-    let v1=rand(6);
+    let passEnc = pass.split("").map(c=>c.charCodeAt(0)+2).reverse();
 
     let lua = `
-${noise()}
-local _p={${p}}
+local _p={${passEnc}}
 
 local function _dp(t)
     local s=""
@@ -128,46 +69,60 @@ local function _dp(t)
     return s
 end
 
-local ${v1}="${s2}"
+local data="${encoded}"
 
-local function _dn(s)
-    local r=""
-    for v in string.gmatch(s,"[^,]+") do
-        r=r..string.char(tonumber(v)-5)
+local function decodeNum(str)
+    local s=""
+    for v in string.gmatch(str,"[^,]+") do
+        s=s..string.char(tonumber(v)-3)
     end
-    return r
+    return s
+end
+
+-- BASE64 DECODER (PURE LUA)
+local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+function b64decode(data)
+    data = string.gsub(data, '[^'..b..'=]', '')
+    return (data:gsub('.', function(x)
+        if (x == '=') then return '' end
+        local r,f='',(b:find(x)-1)
+        for i=6,1,-1 do
+            r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0')
+        end
+        return r
+    end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
+        if (#x ~= 8) then return '' end
+        local c=0
+        for i=1,8 do
+            c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0)
+        end
+        return string.char(c)
+    end))
 end
 
 local pass=_dp(_p)
 
-if not pass then return end
-
-local decoded=_dn(${v1})
-
-local final=(function(x)
-    return (x:gsub('.', function(c)
-        return string.char(string.byte(c))
-    end))
-end)(decoded)
+local step1 = decodeNum(data)
+local final = b64decode(step1)
 
 local f = loadstring or load
 f(final)()
 `;
 
-    document.getElementById("output").value = lua;
+    output.value = lua;
 }
 
-// 🔓 DECODE
+// decode web
 function dec(){
-    let code=document.getElementById("input").value;
+    let code=input.value;
 
     try{
-        let data = code.match(/local \w+="(.*?)"/)[1];
+        let data = code.match(/data="(.*?)"/)[1];
         let step1 = decodeNum(data);
         let original = b64d(step1);
-        document.getElementById("output").value = original;
+        output.value = original;
     }catch{
-        alert("Decode gagal!");
+        alert("decode gagal");
     }
 }
 </script>
