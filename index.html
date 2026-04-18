@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Lua Obfuscator - Devil Mode+</title>
+    <title>Lua Obfuscator - Devil Mode FIX</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
@@ -12,14 +12,14 @@
 </head>
 <body>
 
-<h2>💀 Lua Obfuscator (Devil Mode+)</h2>
+<h2>💀 Lua Obfuscator (Devil Mode FIX)</h2>
 
 <input id="password" placeholder="Password 🔑">
 <textarea id="input" placeholder="Lua script..."></textarea>
 
 <br>
-<button onclick="obf()">Obfuscate</button>
-<button onclick="dec()">Decode</button>
+<button onclick="obf()">🔒 Obfuscate</button>
+<button onclick="dec()">🔓 Decode</button>
 
 <textarea id="output"></textarea>
 
@@ -44,41 +44,29 @@ function rand(len){
 
 function noise(){
     let n="";
-    for(let i=0;i<6;i++){
+    for(let i=0;i<5;i++){
         n+=`local ${rand(5)}=${Math.random()*9999}\n`;
     }
     return n;
 }
 
-// 🔒 encode password → angka + xor + reverse
+// encode password
 function encodePass(pass){
-    let key = 23;
-    let arr = [];
+    let key=23, arr=[];
     for(let i=0;i<pass.length;i++){
-        arr.push(pass.charCodeAt(i) ^ key);
+        arr.push(pass.charCodeAt(i)^key);
     }
     return arr.reverse();
 }
 
-// 🔓 decode password (buat fitur decode di web)
-function decodePass(arr){
-    let key = 23;
-    let s="";
-    arr = arr.slice().reverse();
-    for(let i=0;i<arr.length;i++){
-        s+=String.fromCharCode(arr[i]^key);
-    }
-    return s;
-}
-
-// OBFUSCATE
+// OBF
 function obf(){
     let code=input.value;
     let pass=password.value;
 
     if(!code||!pass) return alert("isi semua");
 
-    let encodedPass = encodePass(pass);
+    let encPass = encodePass(pass);
 
     let s1 = xor(code, pass);
     let s2 = b64e(s1);
@@ -89,12 +77,12 @@ function obf(){
 
     let lua = `
 ${noise()}
-local _p=${JSON.stringify(encodedPass)}
+local _p=${JSON.stringify(encPass)}
 
 local function _dp(t)
     local s=""
     for i=#t,1,-1 do
-        s=s..string.char(bit32.bxor(t[i],23))
+        s=s..string.char(t[i] ~ 23)
     end
     return s
 end
@@ -105,12 +93,12 @@ local ${v2}="${s4}"
 local function ${v3}(a,b)
     local r=""
     for i=1,#a do
-        r=r..string.char(bit32.bxor(string.byte(a,i), string.byte(b,((i-1)%#b)+1)))
+        local ca=string.byte(a,i)
+        local cb=string.byte(b,((i-1)%#b)+1)
+        r=r..string.char((ca ~ cb) % 256)
     end
     return r
 end
-
-if not bit32 then error("Nope") end
 
 local s = ${v3}((${v3}((${v3}(${v2},${v1})),string.reverse(${v1}))),${v1})
 
@@ -120,13 +108,14 @@ loadstring(s)()
     output.value = lua;
 }
 
-// DECODE
+// DECODE (FIX)
 function dec(){
     let code=input.value;
     let pass=password.value;
 
     try{
-        let data = code.match(/local .*="(.*?)"/)[1];
+        let matches = [...code.matchAll(/local\s+\w+="(.*?)"/g)];
+        let data = matches.sort((a,b)=>b[1].length - a[1].length)[0][1];
 
         let s3 = b64d(data);
         let s2 = xor(s3, pass.split("").reverse().join(""));
