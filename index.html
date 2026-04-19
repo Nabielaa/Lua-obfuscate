@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Lua Obfuscator (FINAL NO ERROR)</title>
+<title>Lua Obfuscator (Work + Password)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
 textarea { width:95%; height:150px; margin:8px 0; background:#151515; color:#7CFFCB; border:none; padding:10px; border-radius:8px; }
+input { padding:10px; border:none; border-radius:8px; margin:5px; }
 button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
 </style>
 </head>
 <body>
 
-<h2>💀 Lua Obfuscator (NO ERROR)</h2>
+<h2>💀 Lua Obfuscator (Work + Password)</h2>
 
-<textarea id="input" placeholder="Masukkan script Lua..."></textarea>
+<input id="password" placeholder="Password 🔑">
+<textarea id="input" placeholder="Lua script..."></textarea>
 
 <br>
 <button onclick="obf()">🔒 Obfuscate</button>
@@ -22,46 +24,85 @@ button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radiu
 <textarea id="output"></textarea>
 
 <script>
-// encode ke byte
-function encode(str){
-    let res = "";
+// 🔒 ENCODE DENGAN PASSWORD
+function encode(str, pass){
+    let res = [];
     for(let i=0;i<str.length;i++){
-        res += "\\" + str.charCodeAt(i);
+        let key = pass.charCodeAt(i % pass.length);
+        res.push(str.charCodeAt(i) + key);
+    }
+    return res.join(",");
+}
+
+// 🔓 DECODE
+function decode(str, pass){
+    let arr = str.split(",");
+    let res = "";
+    for(let i=0;i<arr.length;i++){
+        let key = pass.charCodeAt(i % pass.length);
+        res += String.fromCharCode(arr[i] - key);
     }
     return res;
 }
 
-// decode
-function decode(str){
-    return str.replace(/\\(\d+)/g, (m,n)=>String.fromCharCode(n));
-}
-
-// OBF
+// OBFUSCATE
 function obf(){
     let code = input.value;
-    if(!code) return alert("Isi script dulu!");
+    let pass = password.value;
 
-    let enc = encode(code);
+    if(!code || !pass) return alert("Isi semua!");
+
+    let enc = encode(code, pass);
+
+    // password disembunyiin
+    let p = pass.split("").map(c=>c.charCodeAt(0)+1).reverse();
 
     let lua = `
-local s="${enc}"
+local _p={${p}}
+
+local function getPass(t)
+    local s=""
+    for i=#t,1,-1 do
+        s=s..string.char(t[i]-1)
+    end
+    return s
+end
+
+local data="${enc}"
+
+local function decode(str, pass)
+    local res=""
+    local i=0
+    for v in string.gmatch(str,"[^,]+") do
+        i=i+1
+        local key = string.byte(pass, ((i-1)%#pass)+1)
+        res=res..string.char(tonumber(v)-key)
+    end
+    return res
+end
+
+local pass = getPass(_p)
+
+local final = decode(data, pass)
 
 local f = loadstring or load
-f(s)()
+f(final)()
 `;
 
     output.value = lua;
 }
 
-// DECODE
+// DECODE WEB (BUTUH PASSWORD)
 function dec(){
     let code = input.value;
+    let pass = password.value;
 
     try{
-        let data = code.match(/local s="(.*?)"/)[1];
-        output.value = decode(data);
+        let data = code.match(/data="(.*?)"/)[1];
+        let result = decode(data, pass);
+        output.value = result;
     }catch{
-        alert("Gagal decode!");
+        alert("Password salah!");
     }
 }
 </script>
