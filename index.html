@@ -1,117 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>💀 Lua Obfuscator (FINAL SECURE)</title>
+<title>Lua Obfuscator (Simple & Work)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body { background:#0b0b0b; color:white; text-align:center; font-family:Arial; }
 textarea { width:95%; height:150px; margin:8px 0; background:#151515; color:#7CFFCB; border:none; padding:10px; border-radius:8px; }
-input { padding:10px; border:none; border-radius:8px; margin:5px; }
 button { padding:10px; margin:5px; background:#7CFFCB; border:none; border-radius:8px; cursor:pointer; }
 </style>
 </head>
 <body>
 
-<h2>💀 Lua Obfuscator (FINAL SECURE)</h2>
+<h2>💀 Lua Obfuscator (Simple & Work)</h2>
 
-<input id="password" placeholder="Password 🔑">
-<textarea id="input" placeholder="Lua script..."></textarea>
+<textarea id="input" placeholder="Masukkan script Lua..."></textarea>
 
 <br>
 <button onclick="obf()">🔒 Obfuscate</button>
 <button onclick="dec()">🔓 Decode</button>
 
-<textarea id="output"></textarea>
+<textarea id="output" placeholder="Hasil..."></textarea>
 
 <script>
 // BASE64
 function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
 function b64d(s){return decodeURIComponent(escape(atob(s)));}
 
-// 🔒 ENCODE pakai PASSWORD
-function encodeNum(str, pass){
-    let arr=[];
-    for(let i=0;i<str.length;i++){
-        let key = pass.charCodeAt(i % pass.length);
-        arr.push(str.charCodeAt(i) + key);
-    }
-    return arr.join(",");
-}
-
-// 🔓 DECODE pakai PASSWORD
-function decodeNum(str, pass){
-    let s="";
-    let arr=str.split(",");
-    for(let i=0;i<arr.length;i++){
-        let key = pass.charCodeAt(i % pass.length);
-        s+=String.fromCharCode(arr[i] - key);
-    }
-    return s;
-}
-
-// RANDOM
-function rand(len){
-    let c="abcdefghijklmnopqrstuvwxyz";
-    let r="";
-    for(let i=0;i<len;i++){
-        r+=c[Math.floor(Math.random()*c.length)];
-    }
-    return r;
-}
-
-// JUNK
-function noise(){
-    let n="";
-    for(let i=0;i<5;i++){
-        n+=`local ${rand(5)}=${Math.random()*9999}\n`;
-    }
-    return n;
-}
-
-// 🔒 OBFUSCATE
+// 🔒 OBFUSCATE (simple & aman)
 function obf(){
-    let code=input.value;
-    let pass=password.value;
+    let code=document.getElementById("input").value;
+    if(!code) return alert("Isi script dulu!");
 
-    if(!code||!pass){
-        alert("Isi script & password!");
-        return;
-    }
-
-    let b64 = b64e(code);
-    let encoded = encodeNum(b64, pass);
-
-    // sembunyikan password
-    let passEnc = pass.split("").map(c=>c.charCodeAt(0)+2).reverse();
-
-    let varData = rand(6);
+    let encoded = b64e(code);
 
     let lua = `
-${noise()}
-local _p={${passEnc}}
+local data="${encoded}"
 
-local function _dp(t)
-    local s=""
-    for i=#t,1,-1 do
-        s=s..string.char(t[i]-2)
-    end
-    return s
-end
-
-local ${varData}="${encoded}"
-
-local function decodeNum(str, pass)
-    local s=""
-    local i=0
-    for v in string.gmatch(str,"[^,]+") do
-        i=i+1
-        local key = string.byte(pass, ((i-1)%#pass)+1)
-        s=s..string.char(tonumber(v)-key)
-    end
-    return s
-end
-
--- BASE64 DECODER
+-- base64 decode
 local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 local function b64decode(data)
     data = string.gsub(data, '[^'..b..'=]', '')
@@ -132,30 +57,25 @@ local function b64decode(data)
     end))
 end
 
-local pass=_dp(_p)
-
-local step1 = decodeNum(${varData}, pass)
-local final = b64decode(step1)
+local decoded = b64decode(data)
 
 local f = loadstring or load
-f(final)()
+f(decoded)()
 `;
 
-    output.value = lua;
+    document.getElementById("output").value = lua;
 }
 
-// 🔓 DECODE WEB (BUTUH PASSWORD)
+// 🔓 DECODE WEB
 function dec(){
-    let code=input.value;
-    let pass=password.value;
+    let code=document.getElementById("input").value;
 
     try{
-        let data = code.match(/local \w+="(.*?)"/)[1];
-        let step1 = decodeNum(data, pass);
-        let original = b64d(step1);
-        output.value = original;
+        let data = code.match(/data="(.*?)"/)[1];
+        let original = b64d(data);
+        document.getElementById("output").value = original;
     }catch{
-        alert("Password salah / decode gagal!");
+        alert("Gagal decode!");
     }
 }
 </script>
